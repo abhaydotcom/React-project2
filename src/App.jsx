@@ -2,47 +2,74 @@ import Navbar from "./components/navbar"
 import { useState,useEffect } from "react";
 import { FiSearch } from "react-icons/fi";
 import { AiFillPlusCircle } from "react-icons/ai";
-import {collection,getDoc, getDocs} from 'firebase/firestore';
+import {collection,getDoc, getDocs, onSnapshot} from 'firebase/firestore';
 import { db } from "./config/firebass"; 
- 
+import { ToastContainer, toast } from 'react-toastify';
 import ContactCard from "./components/ContactCard";
-import Modal from "./components/modal";
 import AddUpdate from "./components/AddUpdate";
+import useDisclouse from "./hooks/useDisclose";
+ 
 
 function App() {
 
   const [contact,setContact]=useState([]);
-  const [isOpen,setOpen]=useState()
+  const [isOpen, setOpen] = useState(false);
 
-  const onOpen=()=>{
+  const onOpen = () => {
     setOpen(true);
-
-  }
-
-  const onClose=()=>{
-    setOpen(false)
-  }
+  };
+  const onClose = () => {
+    setOpen(false);
+  };
 
   useEffect( ()=>{
       const getContact=async()=>{
         try {
 
           const contactRef=   collection (db,"contact");
-          const contactData= await getDocs(contactRef)
-          const contactList= contactData.docs.map((doc)=>{
-            return{
-              id:doc.id,
-              ...doc.data()
-            }
+      
+          onSnapshot(contactRef,(snapshot)=>{
+            const contactList= snapshot.docs.map((doc)=>{
+              return{
+                id:doc.id,
+                ...doc.data()
+              }
+            })
+            setContact(contactList);
+            return contactList
+            
           })
-          setContact(contactList);
-          
+
+        
         } catch (error) {
           console.log(error)
         }
       }
         getContact();
   } ,[] )
+
+  const filterContact=(e)=>{
+    const value=e.target.value;
+
+    const contactRef=collection (db,"contact");
+      
+    onSnapshot(contactRef,(snapshot)=>{
+      const contactList= snapshot.docs.map((doc)=>{
+        return{
+          id:doc.id,
+          ...doc.data(),
+        };
+      });
+
+      const filteredContact = contactList.filter((contact)=>
+        contact.name.toLowerCase().includes(value.toLowerCase())
+      )
+      setContact(filteredContact);
+      return filteredContact
+      
+
+  })
+}
 
   return (
     <div className=" mx-auto   lg:w-[1000px] sm:w-[500px] px-4:">
@@ -53,7 +80,7 @@ function App() {
       <div className="relative  flex flex-grow items-center">
             <FiSearch className="absolute ml-1 text-3xl text-white" />
             <input
-             
+             onChange={filterContact}
               type="text"
               className=" h-10  flex-grow rounded-md border border-white bg-transparent pl-9 text-white"
             />
@@ -74,7 +101,8 @@ function App() {
 
 </div>
 
-<AddUpdate  onClose={onClose} isOpen={isOpen}  /> 
+<AddUpdate   onClose={onClose} isOpen={isOpen}  /> 
+<ToastContainer className="lg:position=bottom-center" />
 </div>
 
   )
